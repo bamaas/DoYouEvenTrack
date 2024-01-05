@@ -1,0 +1,12 @@
+<div fxLayout="column" fxLayoutGap="20px">
+  <div fxLayout="row">
+    <h1 mat-dialog-title>{{data.title}}</h1>
+  </div>
+  <div fxLayout="row" mat-dialog-content>
+    <p class="mat-body">{{data.message}}</p>
+  </div>
+  <div fxLayout="row" mat-dialog-actions fxLayoutGap="12px">
+    <button mat-button color="primary" (click)="onNoClick()">{{data.btn_cancel}}</button>
+    <button mat-flat-button color="primary" [mat-dialog-close]="true" cdkFocusInitial>{{data.btn_confirm}}</button>
+  </div>
+</div>

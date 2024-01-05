@@ -1,0 +1,20 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: Lint
+        entry: make
+        args: ['lint']
+        pass_filenames: false
+        language: system
+        stages: [commit]
+  - repo: local
+    hooks:
+      - id: commitizen
+        name: Commit message validation
+        entry: make
+        args: ['commit-msg-check']
+        pass_filenames: false
+        language: system
+        stages: [commit-msg]

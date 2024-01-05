@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels:
+    {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "frontend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "frontend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "frontend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              IAM_URL=$(echo ${IAM_EXTERNAL_URL} | sed 's/\./\\./g')
+              {{- with (first .Values.ingress.hosts) }}
+              FRONTEND_URL=$(echo {{ .host }} | sed 's/\./\\./g')
+              {{- end }}
+              BACKEND_URL=$(echo ${BACKEND_EXTERNAL_URL} | sed 's/\./\\./g')
+              find /usr/share/nginx/html/*.js -type f -exec sed -i "s/api\.doyoueventrack\.app/${BACKEND_URL}/g" {} \;
+              find /usr/share/nginx/html/*.js -type f -exec sed -i "s/bro\.doyoueventrack\.app/${FRONTEND_URL}/g" {} \;
+              find /usr/share/nginx/html/*.js -type f -exec sed -i "s/auth\.doyoueventrack\.app/${IAM_URL}/g" {} \;
+              sed -i -e 's/$PORT/'"$PORT"'/g' /etc/nginx/nginx.conf 
+              nginx -g 'daemon off;'
+          env:
+            - name: PORT
+              value: "4200"
+            - name: BACKEND_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-backend-connection-urls
+                  key: external
+            - name: IAM_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-iam-connection-urls
+                  key: external
+          ports:
+            - name: http
+              containerPort: 4200
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

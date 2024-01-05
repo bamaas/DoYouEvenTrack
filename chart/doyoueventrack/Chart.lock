@@ -1,0 +1,15 @@
+dependencies:
+- name: iam
+  repository: file://../charts/iam
+  version: 0.0.1
+- name: frontend
+  repository: file://../charts/frontend
+  version: 0.0.1
+- name: backend
+  repository: file://../charts/backend
+  version: 0.0.1
+- name: database
+  repository: file://../charts/database
+  version: 0.0.1
+digest: sha256:7ca17c393a0f5daa02e3f739be0c33d42d4876c35efc9885dedce94c6e7aff5e
+generated: "2023-09-03T21:22:30.327576+02:00"

@@ -1,0 +1,21 @@
+.nav{
+    padding-right: 24px;
+    background-color: #3545a5;
+}
+.nav a{
+    color: #fff;
+}
+.nav a:hover{
+    text-decoration: none;
+}
+.nav-text{
+    padding-left: 10px;
+    font-weight: 500px;
+    font-size: 12px;
+}
+
+#header-title{
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    padding-top: 4px;
+}

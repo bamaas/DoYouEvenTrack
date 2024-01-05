@@ -1,0 +1,10 @@
+apiVersion: v2
+name: database
+description: The database for dyet
+type: application
+version: 0.0.1
+appVersion: "1.16.0"
+dependencies:
+  - name: postgresql
+    version: 12.1.5
+    repository: https://charts.bitnami.com/bitnami

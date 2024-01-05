@@ -1,0 +1,62 @@
+<!-- <div fxLayout="column">
+    <form [formGroup]="columnFilterFormGroup">
+        <mat-checkbox *ngFor="let columnDefinition of columnDefinitions;"  [formControlName]="columnDefinition.def">{{columnDefinition.label}}</mat-checkbox>
+    </form>
+</div> -->
+<div fxLayout="column">
+    <div fxLayout="row" fxLayoutAlign="left end">
+        <div fxFill> 
+            <cdk-virtual-scroll-viewport itemSize="48" tvsItemSize [style.height.px]="tableBodyHeight" infiniteScroll [scrollWindow]="false" [infiniteScrollDistance]="2" [infiniteScrollThrottle]="60" (scrolled)="onScrollDown()">
+                    <table id="entries-table" mat-table [dataSource]="dataSource">
+
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef style="text-align: right;">
+                            <button *ngIf="filterSet" (click)="resetFilter()" mat-icon-button routerLink="/statistics">
+                                <mat-icon>clear</mat-icon>
+                            </button>
+                        </th>
+                        <td mat-cell *matCellDef="let entry" style="text-align: right;">
+                            <button mat-icon-button>
+                                <mat-icon style="color: rgb(0,0,0,0.7);">keyboard_arrow_right</mat-icon>
+                            </button>
+                            <!-- <button mat-icon-button [matMenuTriggerFor]="actionsMenu" (click)="onClickRowMenu($event)">
+                                <mat-icon style="z-index: 100   ">more_vert</mat-icon>
+                            </button>
+                            <mat-menu #actionsMenu="matMenu">
+                                <button mat-menu-item (click)="editEntry(entry)">
+                                    <mat-icon>edit</mat-icon>Edit
+                                </button>
+                                <button mat-menu-item (click)="deleteEntry(entry.id)">
+                                    <mat-icon>delete</mat-icon>Delete
+                                </button>
+                            </mat-menu> -->
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="date">
+                        <th mat-header-cell *matHeaderCellDef>Date</th>
+                        <td mat-cell *matCellDef="let entry">{{ entry.date | date:'dd-MM-yyyy' }}</td>
+                    </ng-container>
+                
+                    <ng-container matColumnDef="weight">
+                        <th mat-header-cell *matHeaderCellDef>Weight</th>
+                        <td mat-cell *matCellDef="let entry">{{entry.weight}} kg</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="weightDifference">
+                        <th mat-header-cell *matHeaderCellDef>Difference</th>
+                        <td mat-cell *matCellDef="let entry">{{ (entry.weightDifference !== null) ? (entry.weightDifference + ' kg') : "" }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="note">
+                        <th mat-header-cell *matHeaderCellDef>Note</th>
+                        <td mat-cell *matCellDef="let entry">{{ entry.note | truncate:[40, '...'] }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="getDisplayedColumns(); sticky: true"></tr>
+                    <tr mat-row *matRowDef="let entry; columns: getDisplayedColumns();" routerLink="/log/{{entry.id}}" class="table-row-hover"></tr>
+                </table>
+            </cdk-virtual-scroll-viewport>
+        </div>
+    </div>
+</div>

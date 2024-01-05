@@ -1,0 +1,37 @@
+<div fxLayout="column">
+
+  <div fxLayout="row" fxLayoutAlign="left end">
+    <div fxFill> 
+    <table id="entries-table" mat-table [dataSource]="dataSource">
+
+      <ng-container matColumnDef="year">
+          <mat-header-cell *matHeaderCellDef>Year</mat-header-cell>
+          <mat-cell *matCellDef="let weeklyAverage">{{ weeklyAverage.year }}</mat-cell>
+      </ng-container>
+  
+      <ng-container matColumnDef="week">
+          <mat-header-cell *matHeaderCellDef>Week</mat-header-cell>
+          <mat-cell *matCellDef="let weeklyAverage">{{weeklyAverage.week}}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="weightAverage">
+          <mat-header-cell *matHeaderCellDef>Average</mat-header-cell>
+          <mat-cell *matCellDef="let weeklyAverage">{{ weeklyAverage.weightAverage}} kg</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="weightDifference">
+        <mat-header-cell *matHeaderCellDef>Difference</mat-header-cell>
+        <mat-cell *matCellDef="let weeklyAverage">{{ (weeklyAverage.weightDifference !== null) ? (weeklyAverage.weightDifference + ' kg') : "" }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="weightMeasurementCount">
+      <mat-header-cell *matHeaderCellDef>Measurements</mat-header-cell>
+      <mat-cell *matCellDef="let weeklyAverage">{{ weeklyAverage.weightMeasurementCount}}</mat-cell>
+    </ng-container>
+      
+      <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
+      <mat-row *matRowDef="let weeklyAverage; columns: displayedColumns;" (click)="filter(weeklyAverage.year, weeklyAverage.week)" class="table-row-hover"></mat-row>
+  </table>
+  </div>
+  </div>
+</div>

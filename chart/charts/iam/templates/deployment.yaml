@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "iam.fullname" . }}
+  labels:
+    {{- include "iam.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "iam.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "iam.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "iam.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              {{- with (first .Values.ingress.hosts) }}
+              IAM_URL=$(echo {{ .host }} | sed 's/\./\\./g')
+              {{- end }}
+              sed -i "s/auth\.doyoueventrack\.app/${IAM_URL}/g" /opt/jboss/keycloak/themes/FitTrack/login/template.ftl
+              /opt/jboss/keycloak/bin/kcadm.sh update realms/FitTrack --server http://localhost:8080/auth --realm master --user ${KEYCLOAK_USER} --password ${KEYCLOAK_PASSWORD} -f /mnt/smtp.json
+              /opt/jboss/tools/docker-entrypoint.sh -b 0.0.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-iam-credentials
+          env:
+          - name: PROXY_ADDRESS_FORWARDING
+            value: "true"
+          {{- with (first .Values.ingress.hosts) }}
+          - name: KEYCLOAK_FRONTEND_URL
+            value: "https://{{ .host }}/auth"
+          {{- end }}
+          - name: DB_VENDOR
+            value: "postgres"
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-database-connect
+                key: username
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-database-connect
+                key: password
+          - name: DB_ADDR
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-database-connect
+                key: host
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-database-connect
+                key: port
+          - name: DB_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-database-connect
+                key: database
+          - name: DB_SCHEMA
+            value: "iam"
+          readinessProbe:
+            httpGet:
+              path: /auth/realms/master
+              port: 8080
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: "/mnt/"
+              name: iam-smtp
+              readOnly: true
+      volumes:
+      - name: iam-smtp
+        secret:
+          secretName: {{ .Release.Name }}-iam-smtp-settings
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

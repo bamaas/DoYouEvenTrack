@@ -1,0 +1,20 @@
+{
+  "name": "fittrack-cypress",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cypress": "^6.1.0",
+    "cypress-tags": "0.0.17",
+    "cypress-xpath": "^1.6.1",
+    "pg": "^8.5.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.5"
+  }
+}

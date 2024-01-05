@@ -1,0 +1,145 @@
+<mat-tab-group mat-stretch-tabs>
+    <mat-tab label="Bodyweight">
+        <div fxLayout="row" fxLayoutAlign="left end" class="tab-padding">
+            <form name="tdee-calculator" class="tdee-calculator" [formGroup]="entryForm" #formDirective="ngForm" fxFlexFill>
+                <div fxLayout="column" fxLayoutGap="12px">
+                    <div fxLayout="row">
+                        <mat-form-field appearance="fill" fxFlexFill>
+                            <mat-label>Bodyweight (kg)</mat-label>
+                            <input id="add-entry-input-weight" matInput type="number" min="1" lang="en_EN" (keyup.enter)="submit()" #inputWeight step="0.1" formControlName="weight" required>
+                            <!-- <mat-error *ngIf="!entryForm.get('weight').hasError('weight')">Weight should be between 0 and 250 kg</mat-error> -->
+                        </mat-form-field>
+                    </div>
+                    <div fxLayout="row" fxLayoutGap="12px">
+                        <div fxFlex="50">
+                            <mat-form-field appearance="fill" fxFlexFill (click)="datepicker.open()">
+                                <mat-label>Date</mat-label>
+                                <input matInput [matDatepicker]="datepicker" (keyup.enter)="submit()" formControlName="date" id="add-entry-input-date" required readonly>
+                                <mat-datepicker-toggle matSuffix [for]="datepicker"></mat-datepicker-toggle>
+                                <mat-datepicker #datepicker touchUi></mat-datepicker>
+                            </mat-form-field>
+                        </div>
+                        <div fxFlex="50">
+                            <mat-form-field appearance="fill" fxFlexFill (click)="timepicker.open()">
+                                    <mat-label>Time</mat-label>
+                                    <input [ngxTimepicker]="timepicker" [format]="24" matInput (keyup.enter)="submit()" formControlName="time" required readonly id="add-entry-input-time">
+                                    <mat-icon matSuffix style="cursor: pointer;">access_time</mat-icon>
+                                    <ngx-material-timepicker #timepicker></ngx-material-timepicker>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                    <div fxLayout="row">
+                        <mat-form-field appearance="fill" fxFlexFill>
+                            <mat-label>Note</mat-label>
+                            <input matInput formControlName="note" (keyup.enter)="submit()" id="add-entry-input-note">
+                        </mat-form-field>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </mat-tab>
+    <mat-tab label="Circumference">
+        <form [formGroup]="circumferenceForm" #formDirective="ngForm" fxFlexFill>
+        <div fxLayout="column" class="tab-padding">
+            <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="left end">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Waist (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" type="number" formControlName="waist" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Neck (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="neck" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>        
+            </div>
+            <div fxLayout="row" fxLayoutGap="12px" class="row-padding">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Chest (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="chest" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Arm (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="arm" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+            </div>
+            <div fxLayout="row" fxLayoutGap="12px" class="row-padding">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Calf (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="calf" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Leg (cm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="leg" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+            </div>
+        </div>
+        </form>
+    </mat-tab>
+    <mat-tab label="Skinfold">
+        <form [formGroup]="skinfoldForm" #formDirective="ngForm" fxFlexFill>
+        <div fxLayout="column" class="tab-padding">
+            <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="left end">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Abdominal (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="abdominal" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Thigh (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="thigh" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>        
+            </div>
+            <div fxLayout="row" fxLayoutGap="12px" class="row-padding">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Chest (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="chest" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Calf (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="calf" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+            </div>
+            <div fxLayout="row" fxLayoutGap="12px" class="row-padding">
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Biceps (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="biceps" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+                <div fxLayout="column" fxFlex="50">
+                    <mat-form-field appearance="fill" fxFlexFill>
+                        <mat-label>Triceps (mm)</mat-label>
+                        <input matInput (keyup.enter)="submit()" formControlName="triceps" type="number" min="1" step="0.1">
+                    </mat-form-field>
+                </div>
+            </div>
+        </div>
+        </form>
+    </mat-tab>
+</mat-tab-group>
+<div fxLayout="row" fxLayoutAlign="left end" fxLayoutGap="12px" style="padding: 0px 24px 24px 24px;">
+    <div fxFlex="50">
+        <button mat-stroked-button color="primary" (click)="cancel()" fxFlexFill id="add-entry-btn-cancel">{{data.btn_cancel}}</button>
+    </div>
+    <div fxFlex="50">
+        <button mat-raised-button color="primary" [disabled]="!entryForm.valid" fxFlexFill (keyup.enter)="submit()" (click)="submit()" id="add-entry-btn-add">{{data.btn_confirm}}</button>
+    </div>
+</div>

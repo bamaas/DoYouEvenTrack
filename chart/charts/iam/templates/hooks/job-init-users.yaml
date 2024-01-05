@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: doyoueventrack-iam-init-user
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    revision: "{{ .Release.Revision }}"
+  annotations:
+    "helm.sh/hook": "post-install"
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": "hook-succeeded"
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 60
+  activeDeadlineSeconds: 240
+  template:
+    metadata:
+      labels:
+        job: "iam-init-user"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: iam-init-user
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: 
+          - sh
+          - -c
+          - |
+            until $(curl --output /dev/null --silent --head --fail http://${IAM_INTERNAL_URL}/auth/realms/master); do
+                echo 'waiting for connection...'
+                sleep 5
+            done
+            /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://${IAM_INTERNAL_URL}/auth --realm master --user ${KEYCLOAK_USER} --password ${KEYCLOAK_PASSWORD}
+            /srv/dyet/add-users.sh
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-iam-credentials
+        env:
+          - name: IAM_INTERNAL_URL
+            value: {{ include "iam.fullname" . }}:{{ .Values.service.port }}

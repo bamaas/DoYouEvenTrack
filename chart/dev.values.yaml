@@ -1,0 +1,56 @@
+frontend:
+  ingress:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
+      cert-manager.io/cluster-issuer: letsencrypt-stg
+    hosts:
+    - host: frontend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+    tls:
+      - secretName: frontend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+        hosts:
+          - frontend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+
+backend:
+  ingress:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
+      cert-manager.io/cluster-issuer: letsencrypt-stg
+    hosts:
+    - host: backend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+    tls:
+      - secretName: backend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+        hosts:
+          - backend.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+
+iam:
+  initialUsers:
+    - firstname: demo
+      lastname: demo
+      email: demo@doyoueventrack.app
+      password: demo
+    - firstname: Test
+      lastname: Test
+      email: test@test.test
+      password: test
+  ingress:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
+      cert-manager.io/cluster-issuer: letsencrypt-stg
+    hosts:
+    - host: iam.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+    tls:
+      - secretName: iam.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl
+        hosts:
+          - iam.dyet.${NAMESPACE}.kubernetes.lan.basmaas.nl

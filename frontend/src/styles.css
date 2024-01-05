@@ -1,0 +1,33 @@
+.sticky-sub-mat-toolbar{
+    background: rgb(247 247 247); 
+    padding: 14px; 
+    position: sticky; 
+    top: 56px; 
+    z-index: 1000;
+}
+
+html, body {
+    height: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+.mat-dialog-container{
+    padding: 24px !important;
+}
+
+.table-row-hover{
+    background-position: center;
+    transition: background 0.7s;
+}
+.table-row-hover:hover {
+    background-color:rgba(0, 0, 0, 0.03);
+}
+
+.cursor-pointer{
+    cursor: pointer;
+}
+
+/* Fix for the timepicker to not be below the overlay */
+.cdk-overlay-container {
+    z-index: 999;
+}

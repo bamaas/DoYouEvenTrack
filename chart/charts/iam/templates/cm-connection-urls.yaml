@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-iam-connection-urls
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    revision: "{{ .Release.Revision }}"
+data:
+  internal: {{ include "iam.fullname" . }}:{{ .Values.service.port }}
+  internal_auth: http://{{ include "iam.fullname" . }}:{{ .Values.service.port }}/auth
+  {{- if eq .Values.ingress.enabled true }}
+  {{- with (first .Values.ingress.hosts) }}
+  external: {{ .host }}
+  {{- end }}
+  {{- end }}

@@ -1,0 +1,465 @@
+---
+kind: pipeline
+type: kubernetes
+name: CI
+service_account_name: superuser
+
+trigger:
+  event:
+  - push
+
+globals:
+  - &docker_creds
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+  - &ssh_keys
+    volumes:
+      - name: drone-ssh-keys
+        path: /root/.ssh
+  - &image
+    image: bamaas/dyet-developer:0.0.25
+  - &image_test
+    image: bamaas/dyet-test:0.0.14
+
+volumes:
+- name: drone-ssh-keys
+  claim:
+    name: drone-ssh-keys
+    read_only: true
+
+clone:
+  disable: true
+
+steps:
+
+- name: Clone
+  <<: [*ssh_keys, *image]
+  commands:
+    - git clone ${DRONE_GIT_SSH_URL} .
+    - git checkout ${DRONE_COMMIT}
+
+- name: Lint
+  <<: [*ssh_keys, *image]
+  commands: 
+    - make lint
+
+- name: Build backend
+  image: plugins/docker
+  settings:
+    context: backend
+    mtu: 1440
+    dockerfile: backend/Dockerfile
+    repo: bamaas/fullstackfit_backend
+    tags: "${DRONE_COMMIT_SHA:0:10}"
+    <<: *docker_creds
+
+- name: Build frontend  
+  image: plugins/docker
+  environment:
+    PORT: 4200
+  settings:
+    context: frontend
+    dockerfile: frontend/Dockerfile
+    repo: bamaas/fullstackfit_frontend
+    tags: "${DRONE_COMMIT_SHA:0:10}"
+    build_args:
+      - config=production
+    <<: *docker_creds
+
+- name: Build iam - jar
+  image: maven:3.8-jdk-11-slim
+  commands:
+   - mvn package -Dmaven.compiler.executable=javac -Dmaven.test.skip=true -f ./iam/plugins/event_listener
+
+- name: Build iam - img
+  image: plugins/docker
+  settings:
+    context: iam
+    dockerfile: iam/Dockerfile
+    repo: bamaas/fullstackfit_iam
+    tags: "${DRONE_COMMIT_SHA:0:10}"
+    <<: *docker_creds
+
+- name: Build liquibase
+  image: plugins/docker
+  settings:
+    context: database/liquibase
+    dockerfile: database/liquibase/Dockerfile
+    repo: bamaas/fullstackfit_liquibase
+    tags: "${DRONE_COMMIT_SHA:0:10}"
+    <<: *docker_creds
+
+- name: Deploy
+  <<: [*ssh_keys, *image]
+  commands:
+   - make install
+  environment:
+    IMAGE_TAG: ${DRONE_COMMIT_SHA:0:10}
+    NAMESPACE: ${DRONE_COMMIT_SHA:0:10}
+
+- name: Run API tests
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${DRONE_COMMIT_SHA:0:10}
+    TEST_SUITE: api
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Run E2E tests for desktop view
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${DRONE_COMMIT_SHA:0:10}
+    TEST_SUITE: e2e
+    TEST_VIEWPORT: desktop
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Run E2E tests for mobile view
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${DRONE_COMMIT_SHA:0:10}
+    TEST_SUITE: e2e
+    TEST_VIEWPORT: mobile
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Bump version & generate changelog
+  <<: [*ssh_keys, *image]
+  commands: 
+    - git checkout master
+    - make bump
+    - git push origin master
+    - git push origin --tags
+  when:
+    branch: 
+      - master
+
+- name: Cleanup
+  <<: [*ssh_keys, *image]
+  commands:
+   - make uninstall
+  environment:
+    NAMESPACE: ${DRONE_COMMIT_SHA:0:10}
+  when:
+    status:
+    - success
+    - failure
+
+- name: Notify
+  <<: [*ssh_keys, *image]
+  environment:
+    GOTIFY:
+      from_secret: GOTIFY_TOKEN
+  commands:
+   - |
+    curl "http://gotify.gotify.svc.cluster.local/message?token=$${GOTIFY}" \
+    -F "priority=5" \
+    -F "title=${DRONE_REPO} pipeline failed" \
+    -F "message=Branch: ${DRONE_COMMIT_BRANCH} | Build link: ${DRONE_BUILD_LINK}"
+  when:
+    status:
+    - failure
+
+#######################################################################################################
+# RELEASE
+#######################################################################################################
+
+---
+kind: pipeline
+type: kubernetes
+name: Release
+service_account_name: superuser
+
+trigger:
+  event:
+  - tag
+
+globals:
+  - &docker_creds
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+  - &ssh_keys
+    volumes:
+      - name: drone-ssh-keys
+        path: /root/.ssh
+  - &image
+    image: bamaas/dyet-developer:0.0.25
+
+volumes:
+- name: drone-ssh-keys
+  claim:
+    name: drone-ssh-keys
+    read_only: true
+
+clone:
+  disable: true
+
+steps:
+
+- name: Clone
+  <<: [*ssh_keys, *image]
+  commands:
+    - git clone ${DRONE_GIT_SSH_URL} .
+    - git checkout ${DRONE_COMMIT}
+
+- name: Build backend
+  image: plugins/docker
+  settings:
+    context: backend
+    mtu: 1440
+    dockerfile: backend/Dockerfile
+    repo: bamaas/fullstackfit_backend
+    tags: "${DRONE_SEMVER}"
+    <<: *docker_creds
+
+- name: Build frontend  
+  image: plugins/docker
+  environment:
+    PORT: 4200
+  settings:
+    context: frontend
+    dockerfile: frontend/Dockerfile
+    repo: bamaas/fullstackfit_frontend
+    tags: "${DRONE_SEMVER}"
+    build_args:
+      - config=production
+    <<: *docker_creds
+
+- name: Build iam - jar
+  image: maven:3.8-jdk-11-slim
+  commands:
+   - mvn package -Dmaven.compiler.executable=javac -Dmaven.test.skip=true -f ./iam/plugins/event_listener
+
+- name: Build iam - img
+  image: plugins/docker
+  settings:
+    context: iam
+    dockerfile: iam/Dockerfile
+    repo: bamaas/fullstackfit_iam
+    tags: "${DRONE_SEMVER}"
+    <<: *docker_creds
+
+- name: Build liquibase
+  image: plugins/docker
+  settings:
+    context: database/liquibase
+    dockerfile: database/liquibase/Dockerfile
+    repo: bamaas/fullstackfit_liquibase
+    tags: "${DRONE_SEMVER}"
+    <<: *docker_creds
+
+- name: Release Helm package
+  <<: [*ssh_keys, *image]
+  commands:
+   - make helm_release
+  environment:
+    VERSION: ${DRONE_SEMVER}
+    HELM_REGISTRY_USERNAME:
+      from_secret: DOCKER_USERNAME
+    HELM_REGISTRY_PASSWORD:
+      from_secret: DOCKER_PASSWORD
+
+- name: Promote to acc
+  <<: [*image]
+  commands:
+   - drone build promote ${DRONE_REPO} ${DRONE_BUILD_NUMBER} acc
+  environment:
+    DRONE_SERVER: "https://drone.kubernetes.lan.basmaas.nl"
+    DRONE_TOKEN:
+      from_secret: DRONE_TOKEN_BAS
+
+- name: Notify
+  <<: [*ssh_keys, *image]
+  environment:
+    GOTIFY:
+      from_secret: GOTIFY_TOKEN
+  commands:
+   - |
+    curl "http://gotify.gotify.svc.cluster.local/message?token=$${GOTIFY}" \
+    -F "priority=5" \
+    -F "title=${DRONE_REPO} pipeline failed" \
+    -F "message=Branch: ${DRONE_COMMIT_BRANCH} | Build link: ${DRONE_BUILD_LINK}"
+  when:
+    status:
+    - failure
+
+#######################################################################################################
+# Promote
+#######################################################################################################
+
+---
+kind: pipeline
+type: kubernetes
+name: Promote to acc
+service_account_name: superuser
+
+trigger:
+  event:
+  - promote
+  target:
+  - acc
+
+globals:
+  - &ssh_keys
+    volumes:
+      - name: drone-ssh-keys
+        path: /root/.ssh
+  - &image
+    image: bamaas/dyet-developer:0.0.25
+
+volumes:
+- name: drone-ssh-keys
+  claim:
+    name: drone-ssh-keys
+    read_only: true
+
+clone:
+  disable: true
+
+steps:
+
+- name: Clone Bas/env
+  <<: [*ssh_keys, *image]
+  commands:
+    - git clone -b master git@gitea.kubernetes.lan.basmaas.nl:Bas/env.git .
+
+- name: Update version
+  <<: [*ssh_keys, *image]
+  commands:
+    - make update
+  environment:
+    ENV: acc
+    APP: doyoueventrack
+    VERSION: ${DRONE_SEMVER}
+
+- name: Push changes
+  <<: [*ssh_keys, *image]
+  commands:
+    - git add .
+    - git commit -m "Update application ${APP} to version ${VERSION} in env ${ENV}"
+    - git push -u origin HEAD
+
+
+#######################################################################################################
+# CUSTOM TRIGGER (TEST)
+#######################################################################################################
+
+---
+kind: pipeline
+type: kubernetes
+name: Test
+service_account_name: superuser
+
+trigger:
+  event:
+  - custom
+
+globals:
+  - &docker_creds
+    username:
+      from_secret: DOCKER_USERNAME
+    password:
+      from_secret: DOCKER_PASSWORD
+  - &ssh_keys
+    volumes:
+      - name: drone-ssh-keys
+        path: /root/.ssh
+  - &image
+    image: bamaas/dyet-developer:0.0.25
+  - &image_test
+    image: bamaas/dyet-test:0.0.14
+
+steps:
+
+- name: Run API tests
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${ENV}
+    TEST_SUITE: api
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Run E2E tests for desktop view
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${ENV}
+    TEST_SUITE: e2e
+    TEST_VIEWPORT: desktop
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Run E2E tests for mobile view
+  <<: [*image_test]
+  commands:
+    - make test
+  environment:
+    TEST_ENV: ${ENV}
+    TEST_SUITE: e2e
+    TEST_VIEWPORT: mobile
+    CYPRESS_DASHBOARD_KEY:
+      from_secret: CYPRESS_KEY
+    AZURE_TENANT_ID:
+      from_secret: AZ_TENANT_ID
+    AZURE_CLIENT_ID:
+      from_secret: AZ_CLIENT_ID
+    AZURE_CLIENT_SECRET:
+      from_secret: AZ_CLIENT_SECRET
+
+- name: Notify
+  <<: [*image]
+  environment:
+    GOTIFY:
+      from_secret: GOTIFY_TOKEN
+  commands:
+   - |
+    curl "http://gotify.gotify.svc.cluster.local/message?token=$${GOTIFY}" \
+    -F "priority=5" \
+    -F "title=${DRONE_REPO} pipeline failed" \
+    -F "message=Branch: ${DRONE_COMMIT_BRANCH} | Build link: ${DRONE_BUILD_LINK}"
+  when:
+    status:
+    - failure

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  {{- if .Values.postgresql.fullnameOverride }}
+  name: {{ .Values.postgresql.fullnameOverride }}-connect
+  {{ else }}
+  name: {{ .Release.Name }}-database-connect
+  {{ end }}  
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    revision: "{{ .Release.Revision }}"
+type: Opaque
+stringData:
+    {{- if .Values.postgresql.fullnameOverride }}
+    host: {{ .Values.postgresql.fullnameOverride }}
+    {{ else }}
+    host: {{ .Release.Name }}-postgresql 
+    {{ end }}  
+    port: "{{ .Values.postgresql.primary.service.ports.postgresql }}"
+    username: {{ .Values.postgresql.auth.username }}
+    database: {{ .Values.postgresql.auth.database }}
+    password: {{ .Values.postgresql.auth.password }}

@@ -1,0 +1,5 @@
+kubeconfig
+node_modules
+cypress/screenshots/*
+cypress/videos/*
+.vscode

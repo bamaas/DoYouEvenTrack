@@ -1,0 +1,33 @@
+<mat-sidenav-container [hasBackdrop]="true">
+    <mat-sidenav [autoFocus]="false" #sidenav mode="over">
+        <div fxLayout="column" fxLayoutGap="14px">
+            <div fxLayout="column" class="cursor-pointer" routerLink="/profile" (click)="closeSidenav()">
+                <fa-icon class="fa-user-circle-icon cursoir-pointer" [icon]="faUserCircle"></fa-icon>
+                <span class="nav-username mat-h2" test="username">{{ (userInfo !== null) ? (userInfo.name | titlecase ) : "Profile" }}</span>
+            </div>
+            <mat-divider></mat-divider>
+            <button (click)="closeSidenav()" mat-button routerLink="/log" test="nav-entries">
+                <mat-icon>history</mat-icon><span>Log</span>
+            </button>
+            <button (click)="closeSidenav()" mat-button routerLink="/statistics" test="nav-statistics">
+                <mat-icon>bar_chart</mat-icon><span>Statistics</span>
+            </button>
+        </div>
+    </mat-sidenav>
+    <mat-sidenav-content [ngStyle]="{'overflow': (loading === true) ? 'hidden' : 'default'}">
+        <div fxLayout="column" fxLayoutAlign="center center" id="spinner" *ngIf="loading === true" [@fadeOut]>
+            <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+        </div>
+        <div fxLayout="column" fxFlexFill>
+            <app-header style="position: sticky; top: 0; z-index: 10;"></app-header>
+            <router-outlet></router-outlet>
+            <div id="fab-icon">
+                <div id="wrapper">
+                    <button test="add-entry" (click)="addEntry()" color="primary" mat-fab>
+                        <mat-icon>add</mat-icon>
+                    </button>
+                </div>
+            </div>
+        </div>  
+    </mat-sidenav-content>
+</mat-sidenav-container>

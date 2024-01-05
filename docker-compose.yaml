@@ -1,0 +1,96 @@
+version: '3.3'
+services:
+
+  # landing:
+  #   container_name: fit_landing-b
+  #   image: "fullstackfit_landing:b.${IMAGE_TAG}"
+  #   build:
+  #     context: ./landing
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 8000:80
+
+  frontend:
+    container_name: fit_frontend-dev
+    image: fullstackfit_frontend:dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './frontend:/app'
+    ports:
+     - 4200:4200
+    depends_on: 
+      - database
+      - iam
+      - liquibase
+      - backend
+    
+  backend:
+    container_name: fit_backend-b
+    image: "fullstackfit_backend:dev"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    depends_on:
+      - iam
+      - database
+      - liquibase
+  
+  liquibase:
+    container_name: fit_liquibase-b
+    image: "fullstackfit_liquibase:dev"
+    build:
+      context: ./database/liquibase
+      dockerfile: Dockerfile
+    volumes:
+      - "./database/liquibase/changes/:/liquibase/changelog/"
+    depends_on:
+      - iam
+      - database
+    environment: 
+      - LIQUIBASE_URL=jdbc:postgresql://database:5432/postgres
+      - LIQUIBASE_CHANGELOG=/liquibase/changelog/changelog.xml
+      - LIQUIBASE_USERNAME=postgres
+      - LIQUIBASE_PASSWORD=postgres
+    command:
+      - "update"
+
+  iam:
+    container_name: fit_iam-b
+    image: "fullstackfit_iam:dev"
+    build:
+      context: ./iam
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - PROXY_ADDRESS_FORWARDING=true
+      - DB_VENDOR=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_ADDR=database
+      - DB_PORT=5432
+      - DB_DATABASE=postgres
+      - DB_SCHEMA=iam
+      # - KEYCLOAK_FRONTEND_URL=http://localhost/auth
+    depends_on:
+      - database
+
+  database:
+    container_name: fit_database-b
+    image: docker.io/bitnami/postgresql:15.1.0-debian-11-r12    ## Same as the one from the chart
+    environment: 
+      - POSTGRES_USER=postgres
+      - POSTGRES_password=postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - data:/var/lib/postgresql/data
+  
+volumes:
+  data:

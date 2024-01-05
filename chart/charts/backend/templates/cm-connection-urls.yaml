@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-backend-connection-urls
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    revision: "{{ .Release.Revision }}"
+data:
+  internal: {{ include "backend.fullname" . }}:{{ .Values.service.port }}
+  {{- if eq .Values.ingress.enabled true }}
+  {{- with (first .Values.ingress.hosts) }}
+  external: {{ .host }}
+  {{- end }}
+  {{- end }}

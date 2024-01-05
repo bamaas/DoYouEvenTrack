@@ -1,0 +1,105 @@
+#!/bin/sh
+pkill -9 -f kubectl
+set -e
+
+#
+# Script arguments
+#
+CYPRESS_DASHBOARD_KEY=$1
+ENV=$2
+SUITE=$3
+VIEWPORT=${4:-'desktop'}
+
+#
+# Config
+#
+DOCKER_WORKDIR="/e2e"
+DRONE_WORKDIR="/drone/src"
+CONFIG_FILE_DIR="cypress/env"
+CONFIG_FILE_ENCRYPTED="${CONFIG_FILE_DIR}/cypress.${ENV}.env.json"
+CONFIG_FILE="${CONFIG_FILE_DIR}/cypress.${ENV}.dec.json"
+
+#
+# Script argument validation
+#
+if [ -z "$1" ]; then
+  echo "ERROR! Missing first argument 'CYPRESS_DASHBOARD_KEY'."
+  exit 1
+fi
+
+if [ -z "$2" ]; then
+  echo "ERROR! Missing second argument 'ENV' to determine the environment on which to run the tests on."
+  exit 1
+fi
+
+if [ -z "$3" ]; then
+  echo "ERROR! Missing third argument 'SUITE' to determine which test suite to run."
+  exit 1
+fi
+
+#
+# Functions
+#
+
+decrypt_config_file(){
+  echo "> Decrypting config file if it exists..."
+  find ${CONFIG_FILE_DIR}/* -type f -name "${CONFIG_FILE_ENCRYPTED}" -exec bash -c "sops --decrypt "{}" > ${CONFIG_FILE}" \;
+}
+
+create_config_file(){
+    echo "> Creating config file..."
+    sops --decrypt ${CONFIG_FILE_DIR}/cypress.envsubst.enc.json > ${CONFIG_FILE_DIR}/cypress.envsubst.dec.json
+    cp ${CONFIG_FILE_DIR}/cypress.envsubst.dec.json "${CONFIG_FILE}.tmp"
+    ENV="${ENV}" envsubst < "${CONFIG_FILE}.tmp" > "${CONFIG_FILE}"
+    rm "${CONFIG_FILE}.tmp"
+}
+
+set_local_dns_entries(){
+  echo "> Settings local DNS entries..."
+  export INGRESS_HOST="192.168.8.100"
+  echo "${INGRESS_HOST} $(cat ${CONFIG_FILE} | jq -r '.baseUrl' | sed -E 's/^\s*.*:\/\///g')" >> /etc/hosts
+  echo "${INGRESS_HOST} $(cat ${CONFIG_FILE} | jq -r '.env.auth_url' | sed -E 's/^\s*.*:\/\///g')" >> /etc/hosts
+  echo "${INGRESS_HOST} $(cat ${CONFIG_FILE} | jq -r '.env.backend_url' | sed -E 's/^\s*.*:\/\///g')" >> /etc/hosts
+}
+
+start_portforward() {
+  echo "> Starting portforward with database in the background..."
+  NS=$(cat ${CONFIG_FILE} | jq -r .env.namespace)
+  echo "> Using namespace: ${NS}"
+  STATEFULSET_NAME=$(kubectl -n ${NS} get statefulset -l app.kubernetes.io/instance=doyoueventrack -l app.kubernetes.io/name=postgresql -o name --no-headers)
+  if [ -z ${STATEFULSET_NAME} ]; then
+    echo "ERROR! Couldn't find statefulset"
+    exit 1
+  fi
+  echo "> Statefulset name: ${STATEFULSET_NAME}"
+  kubectl -n ${NS} port-forward ${STATEFULSET_NAME} 5432:5432 &
+}
+
+start_xvfb() {
+  echo "> Starting xvfb..."
+  XVFB_PORT=$(shuf -i1-100 -n1)
+  Xvfb -screen 0 1024x768x24 :${XVFB_PORT} &
+}
+
+rsync_files() {
+  echo "> Rsyncing pre-installed npm modules from ${DOCKER_WORKDIR} to ${DRONE_WORKDIR}..."
+  rsync -avq --ignore-existing ${DOCKER_WORKDIR}/ ${DRONE_WORKDIR}
+}
+
+make_test() {
+  echo "> Executing tests..."
+  make test CONFIG_FILE=${CONFIG_FILE} ENV=${ENV} SUITE=${SUITE} VIEWPORT=${VIEWPORT} DISPLAY=:${XVFB_PORT} CYPRESS_DASHBOARD_KEY=${CYPRESS_DASHBOARD_KEY}
+}
+
+#
+# Main
+#
+
+echo "> Running test suite '${SUITE}' on environment '${ENV}' for viewport '${VIEWPORT}'."
+decrypt_config_file
+[ -f "${CONFIG_FILE}" ] && echo "> Using existing config file '${CONFIG_FILE}'." || create_config_file
+set_local_dns_entries
+rsync_files
+start_portforward
+start_xvfb
+make_test

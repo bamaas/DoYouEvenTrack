@@ -1,0 +1,10 @@
+commitizen:
+  bump_message: "release $current_version \u2192 $new_version [CI SKIP]"
+  name: cz_conventional_commits
+  version: 0.2.7
+  version_files:
+  - chart/doyoueventrack/Chart.yaml:version
+  - chart/doyoueventrack/Chart.yaml:appVersion
+  - chart/charts/frontend/Chart.yaml:appVersion
+  - chart/charts/backend/Chart.yaml:appVersion
+  - chart/charts/iam/Chart.yaml:appVersion

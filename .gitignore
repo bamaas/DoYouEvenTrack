@@ -1,0 +1,7 @@
+.venv
+dist/*
+chart/doyoueventrack/charts
+chart/charts/database/charts
+node_modules
+*.dec.*
+*.enc.tmp.*
