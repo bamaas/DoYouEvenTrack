@@ -16,7 +16,7 @@ VIEWPORT=${4:-'desktop'}
 DOCKER_WORKDIR="/e2e"
 DRONE_WORKDIR="/drone/src"
 CONFIG_FILE_DIR="cypress/env"
-CONFIG_FILE_ENCRYPTED="${CONFIG_FILE_DIR}/cypress.${ENV}.env.json"
+CONFIG_FILE_ENCRYPTED="${CONFIG_FILE_DIR}/cypress.${ENV}.enc.json"
 CONFIG_FILE="${CONFIG_FILE_DIR}/cypress.${ENV}.dec.json"
 
 #
